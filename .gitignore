@@ -1,0 +1,17 @@
+node_modules
+.env
+coverage
+coverage.json
+typechain
+typechain-types
+soljson*.js
+.vscode
+
+#Hardhat files
+cache
+artifacts
+.deps
+.deploys
+
+# Secrets
+secrets.json
