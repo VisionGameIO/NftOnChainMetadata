@@ -191,7 +191,7 @@ abstract contract OnChainMetadata {
     function _createTokenURI(uint256 tokenId) internal view virtual returns (string memory) {
         string memory name = _getTokenMetadataValue(tokenId, MetadataKeyName);
         string memory description = _getTokenMetadataValue(tokenId, MetadataKeyDescription);
-        
+
         string memory image = _getTokenMetadataValue(tokenId, MetadataKeyImage);
         string memory animationUrl = _getTokenMetadataValue(tokenId, MetadataKeyAnimationUrl);
         string memory externalUrl = _getTokenMetadataValue(tokenId, MetadataKeyExternalUrl);
@@ -213,7 +213,7 @@ abstract contract OnChainMetadata {
         elements[5] = PropertyKeyValuePair(MetadataKeyBackgroundColor, backgroundColor, true);
         elements[6] = PropertyKeyValuePair(MetadataKeyYoutubeUrl, youtubeUrl, true);
         elements[7] = PropertyKeyValuePair(MetadataKeyAttributes, attributes, false);
-        
+
         return _createDataUrlFromJson(_createJson(elements));
     }
 
@@ -239,11 +239,23 @@ abstract contract OnChainMetadata {
     function _createAttributesJson(uint256 tokenId, string[] memory traitTypes) internal view virtual returns (string memory) {
         if (traitTypes.length == 0) return "";
 
-        string memory attributes = "[";
-
         string[] memory traitValues = _getTokenMetadataValues(tokenId, MetadataKeyAttributesTraitValue);
         string[] memory traitDisplayTypes = _getTokenMetadataValues(tokenId, MetadataKeyAttributesTraitDisplayType);
         string[] memory traitMaxValues = _getTokenMetadataValues(tokenId, MetadataKeyAttributesMaxValue);
+
+        return _createAttributesJson(traitTypes, traitValues, traitDisplayTypes, traitMaxValues);
+    }
+
+    function _createAttributesJson(
+        string[] memory traitTypes,
+        string[] memory traitValues,
+        string[] memory traitDisplayTypes,
+        string[] memory traitMaxValues
+    ) internal view virtual returns (string memory) {
+        if (traitTypes.length == 0) return "";
+
+        string memory attributes = "[";
+
         require(traitValues.length == traitTypes.length, "OnChainMetadata: traitValues.length must be equal to traitTypes.length");
 
         for (uint256 i = 0; i < traitTypes.length; i++) {
