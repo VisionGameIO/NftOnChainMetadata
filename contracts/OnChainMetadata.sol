@@ -43,12 +43,12 @@ abstract contract OnChainMetadata {
      * @param tokenId the token identifier.
      * @param key the token metadata key.
      */
-    function _getTokenMetadataValues(uint256 tokenId, bytes32 key) internal view returns (string[] memory) {
-        string[] memory defaultTokenValue = _defaultTokenMetadata.data[key];
-        string[] memory tokenValue = _tokenMetadata[tokenId].data[key];
+    function _getTokenMetadataValues(uint256 tokenId, bytes32 key) internal view returns (string[] storage) {
+        string[] storage tokenValue = _tokenMetadata[tokenId].data[key];
         if (tokenValue.length != 0) {
             return tokenValue;
         } else {
+            string[] storage defaultTokenValue = _defaultTokenMetadata.data[key];
             return defaultTokenValue;
         }
     }
@@ -59,12 +59,7 @@ abstract contract OnChainMetadata {
      * @param key the token metadata key.
      */
     function _getTokenMetadataValue(uint256 tokenId, bytes32 key) internal view returns (string memory) {
-        string[] memory array = _getTokenMetadataValues(tokenId, key);
-        if (array.length > 0) {
-            return array[0];
-        } else {
-            return "";
-        }
+        return _getFirstOrDefaultValue(_getTokenMetadataValues(tokenId, key));
     }
 
     ///
@@ -72,7 +67,7 @@ abstract contract OnChainMetadata {
      * @dev Get the values of a default token metadata key.
      * @param key the contract metadata key.
      */
-    function _getDefaultTokenMetadataValues(bytes32 key) internal view returns (string[] memory) {
+    function _getDefaultTokenMetadataValues(bytes32 key) internal view returns (string[] storage) {
         return _defaultTokenMetadata.data[key];
     }
 
@@ -81,21 +76,7 @@ abstract contract OnChainMetadata {
      * @param key the contract metadata key.
      */
     function _getDefaultTokenMetadataValue(bytes32 key) internal view returns (string memory) {
-        string[] memory array = _getDefaultTokenMetadataValues(key);
-        if (array.length > 0) {
-            return array[0];
-        } else {
-            return "";
-        }
-    }
-
-    ///
-    /**
-     * @dev Get the values of a contract metadata key.
-     * @param key the contract metadata key.
-     */
-    function _getContractMetadataValues(bytes32 key) internal view returns (string[] memory) {
-        return _contractMetadata.data[key];
+        return _getFirstOrDefaultValue(_getDefaultTokenMetadataValues(key));
     }
 
     /**
@@ -103,15 +84,9 @@ abstract contract OnChainMetadata {
      * @param key the contract metadata key.
      */
     function _getContractMetadataValue(bytes32 key) internal view returns (string memory) {
-        string[] memory array = _contractMetadata.data[key];
-        if (array.length > 0) {
-            return array[0];
-        } else {
-            return "";
-        }
+        return _getFirstOrDefaultValue(_contractMetadata.data[key]);
     }
 
-    
     /**
      * @dev Set the values on a contract metadata key.
      * @param key the contract metadata key.
@@ -119,12 +94,7 @@ abstract contract OnChainMetadata {
      */
     function _setContractMetadataValues(bytes32 key, string[] memory values) internal {
         Metadata storage meta = _contractMetadata;
-
-        if (meta.valueCount[key] == 0) {
-            _contractMetadata.keyCount = meta.keyCount + 1;
-        }
-        _contractMetadata.data[key] = values;
-        _contractMetadata.valueCount[key] = values.length;
+        _setGenericMetadataValues(meta, key, values);
     }
 
     /**
@@ -133,9 +103,7 @@ abstract contract OnChainMetadata {
      * @param value the contract metadata value.
      */
     function _setContractMetadataValue(bytes32 key, string memory value) internal {
-        string[] memory values = new string[](1);
-        values[0] = value;
-        _setContractMetadataValues(key, values);
+        _setContractMetadataValues(key, _createSingleElementArray(value));
     }
 
     /**
@@ -146,12 +114,7 @@ abstract contract OnChainMetadata {
      */
     function _setTokenMetadataValues(uint256 tokenId, bytes32 key, string[] memory values) internal {
         Metadata storage meta = _tokenMetadata[tokenId];
-
-        if (meta.valueCount[key] == 0) {
-            _tokenMetadata[tokenId].keyCount = meta.keyCount + 1;
-        }
-        _tokenMetadata[tokenId].data[key] = values;
-        _tokenMetadata[tokenId].valueCount[key] = values.length;
+        _setGenericMetadataValues(meta, key, values);
     }
 
     /**
@@ -161,9 +124,7 @@ abstract contract OnChainMetadata {
      * @param value the token metadata value.
      */
     function _setTokenMetadataValue(uint256 tokenId, bytes32 key, string memory value) internal {
-        string[] memory values = new string[](1);
-        values[0] = value;
-        _setTokenMetadataValues(tokenId, key, values);
+        _setTokenMetadataValues(tokenId, key, _createSingleElementArray(value));
     }
 
     /**
@@ -173,7 +134,7 @@ abstract contract OnChainMetadata {
      * @param values the token metadata values.
      */
     function _addTokenMetadataValues(Metadata storage meta, bytes32 key, string[] memory values) internal {
-        require(meta.valueCount[key] == 0, "OnChainMetadata: Metadata already contains given key");
+        require(meta.valueCount[key] == 0, "OnChainMetadata: key already exists");
         meta.keyCount = meta.keyCount + 1;
         meta.data[key] = values;
         meta.valueCount[key] = values.length;
@@ -186,9 +147,7 @@ abstract contract OnChainMetadata {
      * @param value the token metadata value.
      */
     function _addTokenMetadataValue(Metadata storage meta, bytes32 key, string memory value) internal {
-        string[] memory values = new string[](1);
-        values[0] = value;
-        _addTokenMetadataValues(meta, key, values);
+        _addTokenMetadataValues(meta, key, _createSingleElementArray(value));
     }
 
     /**
@@ -198,12 +157,7 @@ abstract contract OnChainMetadata {
      */
     function _setDefaultTokenMetadataValues(bytes32 key, string[] memory values) internal {
         Metadata storage meta = _defaultTokenMetadata;
-
-        if (meta.valueCount[key] == 0) {
-            _defaultTokenMetadata.keyCount = meta.keyCount + 1;
-        }
-        _defaultTokenMetadata.data[key] = values;
-        _defaultTokenMetadata.valueCount[key] = values.length;
+        _setGenericMetadataValues(meta, key, values);
     }
 
     /**
@@ -212,9 +166,7 @@ abstract contract OnChainMetadata {
      * @param value the token metadata value.
      */
     function _setDefaultTokenMetadataValue(bytes32 key, string memory value) internal {
-        string[] memory values = new string[](1);
-        values[0] = value;
-        _setDefaultTokenMetadataValues(key, values);
+        _setDefaultTokenMetadataValues(key, _createSingleElementArray(value));
     }
 
     function _createTokenURI(uint256 tokenId) internal view virtual returns (string memory) {
@@ -230,8 +182,7 @@ abstract contract OnChainMetadata {
         string[] memory traitTypes = _getTokenMetadataValues(tokenId, MetadataKeyAttributesTraitType);
         string memory attributes = _createAttributesJson(tokenId, traitTypes);
 
-        require(bytes(name).length != 0, "OnChainMetadata: Token metadata field 'name' is not set");
-        require(bytes(description).length != 0, "OnChainMetadata: Token metadata field 'description' is not set");
+        _requireBasicMetadata(name, description);
 
         PropertyKeyValuePair[] memory elements = new PropertyKeyValuePair[](8);
         elements[0] = PropertyKeyValuePair(MetadataKeyName, name, true);
@@ -242,7 +193,6 @@ abstract contract OnChainMetadata {
         elements[5] = PropertyKeyValuePair(MetadataKeyBackgroundColor, backgroundColor, true);
         elements[6] = PropertyKeyValuePair(MetadataKeyYoutubeUrl, youtubeUrl, true);
         elements[7] = PropertyKeyValuePair(MetadataKeyAttributes, attributes, false);
-
         return _createDataUrlFromJson(_createJson(elements));
     }
 
@@ -252,8 +202,7 @@ abstract contract OnChainMetadata {
         string memory image = _getContractMetadataValue(MetadataKeyImage);
         string memory externalLink = _getContractMetadataValue(MetadataKeyExternalLink);
 
-        require(bytes(name).length != 0, "OnChainMetadata: Token metadata field 'name' is not set");
-        require(bytes(description).length != 0, "OnChainMetadata: Token metadata field 'description' is not set");
+        _requireBasicMetadata(name, description);
 
         PropertyKeyValuePair[] memory elements = new PropertyKeyValuePair[](4);
         elements[0] = PropertyKeyValuePair(MetadataKeyName, name, true);
@@ -273,37 +222,42 @@ abstract contract OnChainMetadata {
         return _createAttributesJson(traitTypes, traitValues, traitDisplayTypes, traitMaxValues);
     }
 
+    /**
+     * Requirements:
+     *
+     * - All arrays must be of the same length;
+     */
     function _createAttributesJson(
         string[] memory traitTypes,
         string[] memory traitValues,
         string[] memory traitDisplayTypes,
         string[] memory traitMaxValues
     ) internal view virtual returns (string memory) {
-        if (traitTypes.length == 0) return "";
-
         string memory attributes = "[";
 
-        require(traitValues.length == traitTypes.length, "OnChainMetadata: traitValues.length must be equal to traitTypes.length");
-
         for (uint256 i = 0; i < traitTypes.length; i++) {
-            string memory traitType = traitTypes[i];
-            string memory traitDisplayType = i < traitDisplayTypes.length ? traitDisplayTypes[i] : "";
-            string memory traitMaxValue = i < traitMaxValues.length ? traitMaxValues[i] : "";
+            string memory traitDisplayType = traitDisplayTypes[i];
             bool isNumericTrait = _stringsEqual(traitDisplayType, "numeric") ||
                 _stringsEqual(traitDisplayType, "boost_percentage") ||
                 _stringsEqual(traitDisplayType, "boost_number") ||
                 _stringsEqual(traitDisplayType, "display_type");
+
+            string memory valueWrapper = '"';
+            if (isNumericTrait) {
+                valueWrapper = "";
+            }
+
             attributes = string.concat(
                 attributes,
                 i > 0 ? "," : "",
                 "{",
-                bytes(traitType).length > 0 ? string.concat('"trait_type":"', traitType, '",') : "",
+                _formatJsonAttribute('"trait_type":"', traitTypes[i], '",'),
                 '"value":',
-                isNumericTrait ? "" : '"',
+                valueWrapper,
                 traitValues[i],
-                isNumericTrait ? "" : '"',
-                bytes(traitDisplayType).length > 0 ? string.concat(',"display_type":"', traitDisplayType, '"') : "",
-                bytes(traitMaxValue).length > 0 ? string.concat(',"max_value":', traitMaxValue) : "",
+                valueWrapper,
+                _formatJsonAttribute(',"display_type":"', traitDisplayType, '"'),
+                _formatJsonAttribute(',"max_value":', traitMaxValues[i], ""),
                 "}"
             );
         }
@@ -335,12 +289,13 @@ abstract contract OnChainMetadata {
             );
             firstWritten = true;
         }
+
         result = string.concat(result, "}");
         return result;
     }
 
     function _createDataUrlFromJson(string memory json) internal pure returns (string memory) {
-        return string.concat("data:application/json;charset=utf-8;base64,", Base64.encode(bytes(json)));
+        return string.concat("data:application/json;base64,", Base64.encode(bytes(json)));
     }
 
     // https://ethereum.stackexchange.com/questions/2519/how-to-convert-a-bytes32-to-string
@@ -366,5 +321,42 @@ abstract contract OnChainMetadata {
         } else {
             return keccak256(bytes(a)) == keccak256(bytes(b));
         }
+    }
+
+    function _getFirstOrDefaultValue(string[] storage array) internal view returns (string memory) {
+        if (array.length > 0) {
+            return array[0];
+        } else {
+            return "";
+        }
+    }
+
+    function _requireBasicMetadata(string memory name, string memory description) private pure {
+        require(bytes(name).length != 0, "OnChainMetadata: prop 'name' not set");
+        require(bytes(description).length != 0, "OnChainMetadata: prop 'description' not set");
+    }
+
+    function _formatJsonAttribute(
+        string memory propName,
+        string memory propValue,
+        string memory suffix
+    ) private pure returns (string memory) {
+        if (bytes(propValue).length == 0) return "";
+
+        return string.concat(propName, propValue, suffix);
+    }
+
+    function _createSingleElementArray(string memory value) private pure returns (string[] memory) {
+        string[] memory values = new string[](1);
+        values[0] = value;
+        return values;
+    }
+
+    function _setGenericMetadataValues(Metadata storage metadata, bytes32 key, string[] memory values) private {
+        if (metadata.valueCount[key] == 0) {
+            metadata.keyCount = metadata.keyCount + 1;
+        }
+        metadata.data[key] = values;
+        metadata.valueCount[key] = values.length;
     }
 }
