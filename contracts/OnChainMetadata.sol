@@ -103,12 +103,39 @@ abstract contract OnChainMetadata {
      * @param key the contract metadata key.
      */
     function _getContractMetadataValue(bytes32 key) internal view returns (string memory) {
-        string[] memory array = _getContractMetadataValues(key);
+        string[] memory array = _contractMetadata.data[key];
         if (array.length > 0) {
             return array[0];
         } else {
             return "";
         }
+    }
+
+    
+    /**
+     * @dev Set the values on a contract metadata key.
+     * @param key the contract metadata key.
+     * @param values the contract metadata values.
+     */
+    function _setContractMetadataValues(bytes32 key, string[] memory values) internal {
+        Metadata storage meta = _contractMetadata;
+
+        if (meta.valueCount[key] == 0) {
+            _contractMetadata.keyCount = meta.keyCount + 1;
+        }
+        _contractMetadata.data[key] = values;
+        _contractMetadata.valueCount[key] = values.length;
+    }
+
+    /**
+     * @dev Set a single value on a contract metadata key.
+     * @param key the contract metadata key.
+     * @param value the contract metadata value.
+     */
+    function _setContractMetadataValue(bytes32 key, string memory value) internal {
+        string[] memory values = new string[](1);
+        values[0] = value;
+        _setContractMetadataValues(key, values);
     }
 
     /**
@@ -164,7 +191,6 @@ abstract contract OnChainMetadata {
         _addTokenMetadataValues(meta, key, values);
     }
 
-    ///////////
     /**
      * @dev Set the values on a default token metadata key.
      * @param key the token metadata key.
@@ -224,18 +250,16 @@ abstract contract OnChainMetadata {
         string memory name = _getContractMetadataValue(MetadataKeyName);
         string memory description = _getContractMetadataValue(MetadataKeyDescription);
         string memory image = _getContractMetadataValue(MetadataKeyImage);
-        string memory animation_url = _getContractMetadataValue(MetadataKeyAnimationUrl);
-        string memory external_url = _getContractMetadataValue(MetadataKeyExternalLink);
+        string memory externalLink = _getContractMetadataValue(MetadataKeyExternalLink);
 
         require(bytes(name).length != 0, "OnChainMetadata: Token metadata field 'name' is not set");
         require(bytes(description).length != 0, "OnChainMetadata: Token metadata field 'description' is not set");
 
-        PropertyKeyValuePair[] memory elements = new PropertyKeyValuePair[](5);
+        PropertyKeyValuePair[] memory elements = new PropertyKeyValuePair[](4);
         elements[0] = PropertyKeyValuePair(MetadataKeyName, name, true);
         elements[1] = PropertyKeyValuePair(MetadataKeyDescription, description, true);
         elements[2] = PropertyKeyValuePair(MetadataKeyImage, image, true);
-        elements[3] = PropertyKeyValuePair(MetadataKeyAnimationUrl, animation_url, true);
-        elements[4] = PropertyKeyValuePair(MetadataKeyExternalUrl, external_url, true);
+        elements[3] = PropertyKeyValuePair(MetadataKeyExternalLink, externalLink, true);
         return _createDataUrlFromJson(_createJson(elements));
     }
 

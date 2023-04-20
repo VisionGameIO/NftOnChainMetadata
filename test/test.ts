@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { TestToken } from "../typechain-types/contracts/TestToken";
+import { TestToken } from "../typechain-types/contracts/test/TestToken";
 
 const parseDataURL = require("data-urls");
 
@@ -102,5 +102,50 @@ describe("TestToken", function () {
     const uriBody = new TextDecoder().decode(parseDataURL(uri).body);
     console.log(uriBody);
     expect(uriBody).to.equal(`{"name":"Awesome NFT!","description":"Awesome Description!","attributes":[{"trait_type":"Mood","value":2,"display_type":"numeric"},{"trait_type":"Power Level","value":186,"display_type":"numeric"},{"trait_type":"Health Bonus","value":43,"display_type":"boost_percentage"},{"trait_type":"Emotion","value":"Surprised"}]}`);
+  });
+
+  it("contractURI call should fail until basic metadata is set", async function () {
+    const [owner, user] = await ethers.getSigners();
+    const contract: TestToken = await getContract();
+
+    await contract.safeMint(owner.address);
+    expect(contract.contractURI()).to.be.revertedWith("Token metadata field 'name' is not set");
+
+    await contract.setContractMetadataValue(ethers.utils.formatBytes32String("name"), "Contract Awesome NFT!");
+    expect(contract.contractURI()).to.be.revertedWith("Token metadata field 'description' is not set");
+  });
+
+  it("contractURI call should succeed when all metadata is set", async function () {
+    const [owner, user] = await ethers.getSigners();
+    const contract: TestToken = await getContract();
+
+    await contract.safeMint(owner.address);
+    await contract.setContractMetadataValue(ethers.utils.formatBytes32String("name"), "Contract Awesome NFT!");
+    await contract.setContractMetadataValue(ethers.utils.formatBytes32String("description"), "Contract Awesome Description!");
+    await contract.setContractMetadataValue(ethers.utils.formatBytes32String("image"), "http://placekitten.com/200/300");
+    await contract.setContractMetadataValue(ethers.utils.formatBytes32String("external_url"), "http://example.com/external");
+
+    const uri = await contract.contractURI();
+    const uriBody = new TextDecoder().decode(parseDataURL(uri).body);
+    expect(uriBody).to.equal(`{"name":"Contract Awesome NFT!","description":"Contract Awesome Description!","image":"http://placekitten.com/200/300"}`);
+  });
+
+  it("contractURI shouldn't use any token metadata", async function () {
+    const [owner, user] = await ethers.getSigners();
+    const contract: TestToken = await getContract();
+
+    await contract.safeMint(owner.address);
+
+    await contract.setDefaultTokenMetadataValue(ethers.utils.formatBytes32String("name"), "Awesome NFT!");
+    await contract.setDefaultTokenMetadataValue(ethers.utils.formatBytes32String("description"), "Awesome Description!");
+
+    await contract.setContractMetadataValue(ethers.utils.formatBytes32String("name"), "Contract Awesome NFT!");
+    await contract.setContractMetadataValue(ethers.utils.formatBytes32String("description"), "Contract Awesome Description!");
+    await contract.setContractMetadataValue(ethers.utils.formatBytes32String("image"), "http://placekitten.com/200/300");
+    await contract.setContractMetadataValue(ethers.utils.formatBytes32String("external_link"), "http://example.com/external");
+
+    const uri = await contract.contractURI();
+    const uriBody = new TextDecoder().decode(parseDataURL(uri).body);
+    expect(uriBody).to.equal(`{"name":"Contract Awesome NFT!","description":"Contract Awesome Description!","image":"http://placekitten.com/200/300","external_link":"http://example.com/external"}`);
   });
 });

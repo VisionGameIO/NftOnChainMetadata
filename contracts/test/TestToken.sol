@@ -97,6 +97,10 @@ contract TestToken is ERC721, Ownable, OnChainMetadata {
         return _createTokenURI(tokenId);
     }
 
+    function contractURI() public view returns (string memory) {
+        return _createContractURI();
+    }
+
     // Overrides
 
     function getTokenMetadataValues(uint256 tokenId, bytes32 key) public view returns (string[] memory) {
@@ -121,5 +125,13 @@ contract TestToken is ERC721, Ownable, OnChainMetadata {
 
     function setDefaultTokenMetadataValue(bytes32 key, string memory value) public {
         _setDefaultTokenMetadataValue(key, value);
+    }
+
+    function getContractMetadataValue(bytes32 key) public view returns (string memory) {
+        return _getContractMetadataValue(key);
+    }
+
+    function setContractMetadataValue(bytes32 key, string memory value) public {
+        _setContractMetadataValue(key, value);
     }
 }
