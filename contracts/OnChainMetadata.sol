@@ -4,6 +4,9 @@ pragma solidity ^0.8.9;
 import { Base64 } from "@openzeppelin/contracts/utils/Base64.sol";
 
 abstract contract OnChainMetadata {
+    event MetadataUpdate(uint256 _tokenId);
+    event BatchMetadataUpdate(uint256 _fromTokenId, uint256 _toTokenId);
+
     struct Metadata {
         uint256 keyCount; // number of metadata keys
         mapping(bytes32 => string[]) data; // key => values
