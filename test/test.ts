@@ -42,7 +42,7 @@ describe("TestToken", function () {
     const uri = await contract.tokenURI(0);
     const uriBody = new TextDecoder().decode(parseDataURL(uri).body);
     console.log(uriBody);
-    expect(uri).to.equal("data:application/json;charset=utf-8;base64,eyJuYW1lIjoiQXdlc29tZSBORlQhIiwiZGVzY3JpcHRpb24iOiJBd2Vzb21lIERlc2NyaXB0aW9uISJ9");
+    expect(uri).to.equal("data:application/json;base64,eyJuYW1lIjoiQXdlc29tZSBORlQhIiwiZGVzY3JpcHRpb24iOiJBd2Vzb21lIERlc2NyaXB0aW9uISJ9");
     expect(uriBody).to.equal(`{"name":"Awesome NFT!","description":"Awesome Description!"}`);
   });
 

@@ -62,6 +62,17 @@ abstract contract OnChainMetadata {
         return _getFirstOrDefaultValue(_getTokenMetadataValues(tokenId, key));
     }
 
+    /**
+     * @dev Get the first value of a token metadata key as a PropertyKeyValuePair.
+     * @param tokenId the token identifier.
+     * @param key the token metadata key.
+     * @param isString whether the property is a string and should be wrapped in quotes.
+     */
+    function _getTokenMetadataValueAsProperty(uint256 tokenId, bytes32 key, bool isString) internal view returns (PropertyKeyValuePair memory) {
+        string memory value = _getTokenMetadataValue(tokenId, key);
+        return PropertyKeyValuePair(key, value, isString);
+    }
+
     ///
     /**
      * @dev Get the values of a default token metadata key.
@@ -88,6 +99,16 @@ abstract contract OnChainMetadata {
     }
 
     /**
+     * @dev Get the first value of a contract metadata key key as PropertyKeyValuePair.
+     * @param key the contract metadatakey.
+     * @param isString whether the property is a string and should be wrapped in quotes.
+     */
+    function _getContractMetadataValueAsProperty(bytes32 key, bool isString) internal view returns (PropertyKeyValuePair memory) {
+        string memory value = _getContractMetadataValue(key);
+        return PropertyKeyValuePair(key, value, isString);
+    }
+
+    /**
      * @dev Set the values on a contract metadata key.
      * @param key the contract metadata key.
      * @param values the contract metadata values.
@@ -103,7 +124,7 @@ abstract contract OnChainMetadata {
      * @param value the contract metadata value.
      */
     function _setContractMetadataValue(bytes32 key, string memory value) internal {
-        _setContractMetadataValues(key, _createSingleElementArray(value));
+        _setContractMetadataValues(key, _createSingleElementStringArray(value));
     }
 
     /**
@@ -124,7 +145,7 @@ abstract contract OnChainMetadata {
      * @param value the token metadata value.
      */
     function _setTokenMetadataValue(uint256 tokenId, bytes32 key, string memory value) internal {
-        _setTokenMetadataValues(tokenId, key, _createSingleElementArray(value));
+        _setTokenMetadataValues(tokenId, key, _createSingleElementStringArray(value));
     }
 
     /**
@@ -147,7 +168,7 @@ abstract contract OnChainMetadata {
      * @param value the token metadata value.
      */
     function _addTokenMetadataValue(Metadata storage meta, bytes32 key, string memory value) internal {
-        _addTokenMetadataValues(meta, key, _createSingleElementArray(value));
+        _addTokenMetadataValues(meta, key, _createSingleElementStringArray(value));
     }
 
     /**
@@ -166,49 +187,41 @@ abstract contract OnChainMetadata {
      * @param value the token metadata value.
      */
     function _setDefaultTokenMetadataValue(bytes32 key, string memory value) internal {
-        _setDefaultTokenMetadataValues(key, _createSingleElementArray(value));
+        _setDefaultTokenMetadataValues(key, _createSingleElementStringArray(value));
     }
 
     function _createTokenURI(uint256 tokenId) internal view virtual returns (string memory) {
-        string memory name = _getTokenMetadataValue(tokenId, MetadataKeyName);
-        string memory description = _getTokenMetadataValue(tokenId, MetadataKeyDescription);
-
-        string memory image = _getTokenMetadataValue(tokenId, MetadataKeyImage);
-        string memory animationUrl = _getTokenMetadataValue(tokenId, MetadataKeyAnimationUrl);
-        string memory externalUrl = _getTokenMetadataValue(tokenId, MetadataKeyExternalUrl);
-        string memory backgroundColor = _getTokenMetadataValue(tokenId, MetadataKeyBackgroundColor);
-        string memory youtubeUrl = _getTokenMetadataValue(tokenId, MetadataKeyYoutubeUrl);
+        PropertyKeyValuePair memory name = _getTokenMetadataValueAsProperty(tokenId, MetadataKeyName, true);
+        PropertyKeyValuePair memory description = _getTokenMetadataValueAsProperty(tokenId, MetadataKeyDescription, true);
 
         string[] memory traitTypes = _getTokenMetadataValues(tokenId, MetadataKeyAttributesTraitType);
         string memory attributes = _createAttributesJson(tokenId, traitTypes);
 
-        _requireBasicMetadata(name, description);
+        _requireBasicMetadata(name.value, description.value);
 
         PropertyKeyValuePair[] memory elements = new PropertyKeyValuePair[](8);
-        elements[0] = PropertyKeyValuePair(MetadataKeyName, name, true);
-        elements[1] = PropertyKeyValuePair(MetadataKeyDescription, description, true);
-        elements[2] = PropertyKeyValuePair(MetadataKeyImage, image, true);
-        elements[3] = PropertyKeyValuePair(MetadataKeyAnimationUrl, animationUrl, true);
-        elements[4] = PropertyKeyValuePair(MetadataKeyExternalUrl, externalUrl, true);
-        elements[5] = PropertyKeyValuePair(MetadataKeyBackgroundColor, backgroundColor, true);
-        elements[6] = PropertyKeyValuePair(MetadataKeyYoutubeUrl, youtubeUrl, true);
+        elements[0] = name;
+        elements[1] = description;
+        elements[2] = _getTokenMetadataValueAsProperty(tokenId, MetadataKeyImage, true);
+        elements[3] = _getTokenMetadataValueAsProperty(tokenId, MetadataKeyAnimationUrl, true);
+        elements[4] = _getTokenMetadataValueAsProperty(tokenId, MetadataKeyExternalUrl, true);
+        elements[5] = _getTokenMetadataValueAsProperty(tokenId, MetadataKeyBackgroundColor, true);
+        elements[6] = _getTokenMetadataValueAsProperty(tokenId, MetadataKeyYoutubeUrl, true);
         elements[7] = PropertyKeyValuePair(MetadataKeyAttributes, attributes, false);
         return _createDataUrlFromJson(_createJson(elements));
     }
 
     function _createContractURI() internal view virtual returns (string memory) {
-        string memory name = _getContractMetadataValue(MetadataKeyName);
-        string memory description = _getContractMetadataValue(MetadataKeyDescription);
-        string memory image = _getContractMetadataValue(MetadataKeyImage);
-        string memory externalLink = _getContractMetadataValue(MetadataKeyExternalLink);
+        PropertyKeyValuePair memory name = _getContractMetadataValueAsProperty(MetadataKeyName, true);
+        PropertyKeyValuePair memory description = _getContractMetadataValueAsProperty(MetadataKeyDescription, true);
 
-        _requireBasicMetadata(name, description);
+        _requireBasicMetadata(name.value, description.value);
 
         PropertyKeyValuePair[] memory elements = new PropertyKeyValuePair[](4);
-        elements[0] = PropertyKeyValuePair(MetadataKeyName, name, true);
-        elements[1] = PropertyKeyValuePair(MetadataKeyDescription, description, true);
-        elements[2] = PropertyKeyValuePair(MetadataKeyImage, image, true);
-        elements[3] = PropertyKeyValuePair(MetadataKeyExternalLink, externalLink, true);
+        elements[0] = name;
+        elements[1] = description;
+        elements[2] = _getContractMetadataValueAsProperty(MetadataKeyImage, true);
+        elements[3] = _getContractMetadataValueAsProperty(MetadataKeyExternalLink, true);
         return _createDataUrlFromJson(_createJson(elements));
     }
 
@@ -225,7 +238,7 @@ abstract contract OnChainMetadata {
     /**
      * Requirements:
      *
-     * - All arrays must be of the same length;
+     * - traitTypes and traitValues must be of the same length
      */
     function _createAttributesJson(
         string[] memory traitTypes,
@@ -236,7 +249,8 @@ abstract contract OnChainMetadata {
         string memory attributes = "[";
 
         for (uint256 i = 0; i < traitTypes.length; i++) {
-            string memory traitDisplayType = traitDisplayTypes[i];
+            string memory traitDisplayType = i < traitDisplayTypes.length ? traitDisplayTypes[i] : "";
+            string memory traitMaxValue = i < traitMaxValues.length ? traitMaxValues[i] : "";
             bool isNumericTrait = _stringsEqual(traitDisplayType, "numeric") ||
                 _stringsEqual(traitDisplayType, "boost_percentage") ||
                 _stringsEqual(traitDisplayType, "boost_number") ||
@@ -257,7 +271,7 @@ abstract contract OnChainMetadata {
                 traitValues[i],
                 valueWrapper,
                 _formatJsonAttribute(',"display_type":"', traitDisplayType, '"'),
-                _formatJsonAttribute(',"max_value":', traitMaxValues[i], ""),
+                _formatJsonAttribute(',"max_value":', traitMaxValue, ""),
                 "}"
             );
         }
@@ -331,6 +345,12 @@ abstract contract OnChainMetadata {
         }
     }
 
+    function _createSingleElementStringArray(string memory value) internal pure returns (string[] memory) {
+        string[] memory values = new string[](1);
+        values[0] = value;
+        return values;
+    }
+
     function _requireBasicMetadata(string memory name, string memory description) private pure {
         require(bytes(name).length != 0, "OnChainMetadata: prop 'name' not set");
         require(bytes(description).length != 0, "OnChainMetadata: prop 'description' not set");
@@ -344,12 +364,6 @@ abstract contract OnChainMetadata {
         if (bytes(propValue).length == 0) return "";
 
         return string.concat(propName, propValue, suffix);
-    }
-
-    function _createSingleElementArray(string memory value) private pure returns (string[] memory) {
-        string[] memory values = new string[](1);
-        values[0] = value;
-        return values;
     }
 
     function _setGenericMetadataValues(Metadata storage metadata, bytes32 key, string[] memory values) private {
